@@ -2,12 +2,14 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <!-- Mobil uygulamalarda adres çubuğunu gizleme ve ölçeklemeyi sabitleme -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
+    
+    <!-- PWA Desteği (Uygulama gibi kurulduğunda adres çubuğunu tamamen yok eder) -->
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Ma%C3%A7%20Merkezi%22%2C%22short_name%22%3A%22Ma%C3%A7%20Merkezi%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%230f172a%22%7D">
     
     <title>Maç Merkezi Yönetimi</title>
     
@@ -47,10 +49,11 @@
             z-index: 50;
         }
 
-        /* Taraftar Görünümü İçin Tam Ekran Modu (Gerçek Sayfa) */
+        /* Taraftar Görünümü İçin Tam Ekran Modu */
         .fan-mode.mockup-container {
             width: 100% !important;
-            height: 100% !important;
+            min-height: 100vh !important;
+            height: auto !important;
             max-width: 100% !important;
             border-radius: 0 !important;
             box-shadow: none !important;
@@ -58,6 +61,9 @@
         }
         .fan-mode .mockup-notch {
             display: none !important;
+        }
+        .fan-mode header {
+            padding-top: 1.25rem !important; /* Çentik boşluğunu daraltır */
         }
         
         ::-webkit-scrollbar { width: 4px; }
@@ -108,11 +114,18 @@
         <div id="mockup-container" class="mockup-container">
             <div class="mockup-notch"></div>
             
-            <header class="bg-slate-900 text-white pt-10 pb-5 px-5 flex flex-col items-center justify-center relative shadow-md shrink-0">
-                <h1 id="phone-title" class="text-lg font-black tracking-wide text-center truncate w-full uppercase">Dev Ataşehir</h1>
+            <header id="app-header" class="bg-slate-900 text-white pt-10 pb-4 px-5 flex flex-col items-center justify-center relative shadow-md shrink-0">
+                <div id="header-logo" class="w-[70px] h-[70px] bg-white rounded-full flex items-center justify-center mb-1.5 shadow-[0_0_20px_rgba(0,0,0,0.3)] p-1 border border-slate-700">
+                    <!-- Logo buraya gelecek -->
+                </div>
+                <h1 id="phone-title" class="text-[11px] font-bold tracking-widest text-center truncate w-full uppercase text-slate-300">Dev Ataşehir</h1>
+                <!-- Tam Ekran Butonu (Sadece Taraftar Modunda Görünür) -->
+                <button id="fullscreen-btn" onclick="toggleFullScreen()" class="absolute right-4 text-slate-400 hover:text-white hidden transition-colors" title="Tam Ekran Moduna Geç">
+                    <i id="fs-icon" class="ph-bold ph-corners-out text-[22px]"></i>
+                </button>
             </header>
 
-            <nav class="flex border-b border-slate-200 bg-white shadow-sm shrink-0">
+            <nav id="app-nav" class="flex border-b border-slate-200 bg-white shadow-sm shrink-0">
                 <button id="tab-upcoming" class="flex-1 py-3.5 font-bold text-[13px] transition-colors duration-200 text-emerald-600 border-b-[3px] border-emerald-500 focus:outline-none flex items-center justify-center gap-2 bg-emerald-50/50" onclick="switchTab('upcoming')">
                     <i class="ph-fill ph-calendar-check text-lg"></i> Gelecek Maçlar
                 </button>
@@ -128,7 +141,7 @@
                 </div>
             </main>
             
-            <div class="bg-slate-900 text-slate-400 text-[10px] text-center py-2 shrink-0 border-t border-slate-800">
+            <div id="app-footer" class="bg-slate-900 text-slate-400 text-[10px] text-center py-2 shrink-0 border-t border-slate-800">
                 Maç Merkezi © 2026
             </div>
         </div>
@@ -145,6 +158,23 @@
 
         const SHEET_MATCHES = 'https://docs.google.com/spreadsheets/d/1czqD3fVZD-P8zuefoikXfIisTmqSbSxN-4YXiibxkic/export?format=csv';
         const SHEET_LOGOS = 'https://docs.google.com/spreadsheets/d/1tze95HAdE5QzRbag--RnpzDQPlLBqHZlARJ8TuBp5Fw/export?format=csv';
+
+        // Tam Ekran (Fullscreen) Yöneticisi
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    document.getElementById('fs-icon').classList.replace('ph-corners-out', 'ph-corners-in');
+                }).catch(err => {
+                    console.log("Tam ekran desteklenmiyor veya engellendi:", err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().then(() => {
+                        document.getElementById('fs-icon').classList.replace('ph-corners-in', 'ph-corners-out');
+                    });
+                }
+            }
+        }
 
         function escapeHtml(text) {
             if (!text) return "";
@@ -651,7 +681,7 @@
                                 </button>
                                 <a href="${longLink}" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center shrink-0" title="Git / Aç">
                                     <i class="ph-bold ph-arrow-square-out"></i>
-                                </a>
+                                </button>
                             </div>
                         </div>
                         <div>
@@ -681,9 +711,16 @@
         function selectTeam(teamName) {
             activeTeam = teamName;
             selectedLeague = 'Tümü';
-            document.getElementById('phone-title').innerText = teamName;
+            updateHeader();
             renderTeamList();
             fetchMatches(); 
+        }
+
+        function updateHeader() {
+            const titleEl = document.getElementById('phone-title');
+            const logoEl = document.getElementById('header-logo');
+            if (titleEl) titleEl.innerText = activeTeam;
+            if (logoEl) logoEl.innerHTML = getTeamLogoHtml(activeTeam);
         }
 
         function addTeam() {
@@ -703,6 +740,7 @@
             text.innerText = 'Yenileniyor...';
             
             await fetchLogos();
+            updateHeader();
             await fetchMatches();
             
             icon.classList.remove('animate-spin');
@@ -714,18 +752,38 @@
             const teamParam = urlParams.get('team');
 
             if (teamParam) {
+                // Taraftar Modu (Mobil) Ayarları
                 activeTeam = teamParam;
                 document.getElementById('admin-panel').style.display = 'none'; 
-                document.getElementById('preview-panel').className = "w-full bg-slate-100 flex flex-col items-center justify-center relative h-screen overflow-hidden";
-                document.getElementById('mockup-container').classList.add('fan-mode'); 
+                
+                // Tam ekran yapısını sağlamak için sabit yükseklikleri (h-screen vb.) serbest bırakıyoruz.
+                // Böylece kullanıcı sayfayı kaydırdığında adres çubuğu otomatik saklanır.
+                document.body.classList.remove('h-screen', 'overflow-hidden');
+                document.body.classList.add('bg-slate-50');
+                
+                const previewPanel = document.getElementById('preview-panel');
+                previewPanel.className = "w-full bg-slate-50 flex flex-col relative min-h-screen py-0";
+                
+                const mockup = document.getElementById('mockup-container');
+                mockup.classList.add('fan-mode'); 
+                
+                document.getElementById('phone-content').classList.remove('overflow-y-auto', 'flex-1');
                 document.getElementById('action-buttons').style.display = 'none'; 
-                document.getElementById('phone-title').innerText = activeTeam;
+                
+                // Tam Ekran Butonunu Aktif Et
+                document.getElementById('fullscreen-btn').classList.remove('hidden');
+                
+                // Sekme menüsünü sayfada yapışkan (sticky) yapıyoruz ki scroll yaparken kaybolmasın
+                document.getElementById('app-nav').classList.add('sticky', 'top-0', 'z-40');
                 
                 await fetchLogos();
+                updateHeader();
                 await fetchMatches();
             } else {
+                // Yönetici Modu (Bilgisayar)
                 renderTeamList();
                 await fetchLogos();
+                updateHeader();
                 await fetchMatches();
             }
         };
