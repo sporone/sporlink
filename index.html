@@ -2,7 +2,13 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Mobil uygulamalarda adres çubuğunu gizleme ve ölçeklemeyi sabitleme -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    
     <title>Maç Merkezi Yönetimi</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -41,18 +47,17 @@
             z-index: 50;
         }
 
-        /* Taraftar (Mobil) Görünümü İçin Tam Ekran Modu */
-        @media (max-width: 768px) {
-            .fan-mode.mockup-container {
-                width: 100% !important;
-                height: 100% !important;
-                border-radius: 0 !important;
-                box-shadow: none !important;
-                border: none !important;
-            }
-            .fan-mode .mockup-notch {
-                display: none !important;
-            }
+        /* Taraftar Görünümü İçin Tam Ekran Modu (Gerçek Sayfa) */
+        .fan-mode.mockup-container {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+        .fan-mode .mockup-notch {
+            display: none !important;
         }
         
         ::-webkit-scrollbar { width: 4px; }
@@ -93,7 +98,6 @@
     <div id="preview-panel" class="w-2/3 bg-slate-100/50 flex flex-col items-center justify-center relative overflow-y-auto py-10 transition-all duration-300">
         
         <div id="action-buttons" class="absolute top-6 right-6 z-20 flex gap-2">
-            <!-- Eski "Taraftar Linki Al" Butonu Buradan Kaldırıldı -->
             <button onclick="refreshData()" class="bg-white border border-slate-200 shadow-sm hover:shadow-md text-slate-600 px-4 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2">
                 <i id="refresh-icon" class="ph-bold ph-arrows-clockwise text-emerald-500"></i>
                 <span id="refresh-text">Yenile</span>
@@ -137,7 +141,7 @@
         let matchData = []; 
         let logoData = {}; 
         let selectedLeague = 'Tümü'; 
-        let teamLinks = {}; // TAKIMLARIN MANUEL KISA LİNKLERİNİ TUTACAĞIMIZ YENİ DEĞİŞKEN
+        let teamLinks = {}; 
 
         const SHEET_MATCHES = 'https://docs.google.com/spreadsheets/d/1czqD3fVZD-P8zuefoikXfIisTmqSbSxN-4YXiibxkic/export?format=csv';
         const SHEET_LOGOS = 'https://docs.google.com/spreadsheets/d/1tze95HAdE5QzRbag--RnpzDQPlLBqHZlARJ8TuBp5Fw/export?format=csv';
@@ -173,15 +177,12 @@
                 .replace(/\s+/g, ' ')
                 .trim();
             
-            // "spor" kelimesini silmek "Dev Spor" gibi takımları sadece "dev" yaptığı için diğer takımlarla karışıyordu.
-            // Bu yüzden "spor" kelimesini tek başına silmiyoruz, sadece SK, Derneği, Kulübü gibi ekleri siliyoruz.
             n = n.replace(/\b(sk|spor kulubu|kulubu|genclik|ve|dernegi|der|kulub|takimi|takim)\b/g, ' ')
                  .replace(/\s+/g, ' ')
                  .trim();
             return n;
         }
 
-        // allowVariants: True ise A/B takımlarına izin ver, False ise "Farklı Takım" kuralı uygula
         function isTeamMatch(searchQuery, teamFromExcel, allowVariants = true) {
             if (!searchQuery || !teamFromExcel) return false;
             
@@ -191,15 +192,14 @@
             if (q === t) return true;
             
             if (allowVariants) {
-                // Takım adının devamında sadece boşluk veya tire ile ayrılmış bir varyant harfi varsa (Örn: A, B, 1)
                 if (t.startsWith(q + ' ') || t.startsWith(q + '-')) {
                     let leftover = t.substring(q.length).replace(/^[- \s]+|[- \s]+$/g, '');
                     if (/^[a-z0-9]$/.test(leftover)) {
-                        return true; // Sadece A/B/C gibi varyantlara izin ver
+                        return true; 
                     }
                 }
             }
-            return false; // Geriye "Anadolu" gibi uzun bir kelime kalıyorsa eşleşmeyi kesinlikle reddet
+            return false; 
         }
 
         function parseCSV(csvText) {
@@ -262,7 +262,7 @@
                 
                 rows.forEach(row => {
                     if(row.length >= 2) {
-                        const teamName = row[0]; // Orijinal ismi koru, sorguda normalize edeceğiz
+                        const teamName = row[0]; 
                         let logoUrl = row[1];
                         if (logoUrl && logoUrl.includes('drive.google.com/file/d/')) {
                             const fileIdMatch = logoUrl.match(/[-\w]{25,}/);
@@ -287,7 +287,6 @@
                 
                 matchData = [];
                 
-                // --- TAKIM ARAMA LİSTESİ HAZIRLAMA ---
                 let teamsToSearch = [];
                 
                 if (activeTeam === "Dev Ataşehir") {
@@ -297,7 +296,6 @@
                         { name: "Dev Spor", allowVariants: true }
                     ];
                 } else {
-                    // TÜM TAKIMLAR İÇİN GLOBAL KURAL: Eklenen her takım, A/B varyant kurallarıyla donatıldı!
                     teamsToSearch = [{ name: activeTeam, allowVariants: true }];
                 }
 
@@ -339,7 +337,6 @@
                         let leagueParts = [row[8], row[9], row[10], row[11]].filter(p => p && p !== "-");
                         let leagueName = leagueParts.length > 0 ? leagueParts.join(" ") : "Kategori Belirtilmemiş";
 
-                        // Grup isimlerindeki baştaki gereksiz harf/rakam temizliği
                         leagueName = leagueName.replace(/^\d+\s+/g, ''); 
                         leagueName = leagueName.replace(/^[a-zA-Z]\s+/gi, ''); 
                         leagueName = leagueName.replace(/^[-_]\s*/, '').trim(); 
@@ -367,10 +364,8 @@
             }
         }
 
-        // Set skorlarını ayrıştırıp şık kutucuklara dönüştüren fonksiyon
         function formatSetsHTML(setStr) {
             if (!setStr || setStr === '-' || setStr.trim() === '') return '';
-            // Parantez içi veya virgülle ayrılmış sayıları bul (Örn: 25-13 veya (25-13))
             const regex = /(\d+)\s*[-:]\s*(\d+)/g;
             let match;
             let sets = [];
@@ -380,7 +375,6 @@
                 let s1 = parseInt(match[1]);
                 let s2 = parseInt(match[2]);
                 
-                // Kazanılan (büyük) puan yeşil, kaybedilen kırmızı
                 let color1 = s1 > s2 ? 'text-emerald-500' : (s1 < s2 ? 'text-rose-500' : 'text-slate-600');
                 let color2 = s2 > s1 ? 'text-emerald-500' : (s2 < s1 ? 'text-rose-500' : 'text-slate-600');
 
@@ -408,9 +402,9 @@
             let filteredMatches = matchData.filter(m => m.status === activeTab);
 
             if (activeTab === 'results') {
-                filteredMatches.sort((a, b) => b.timestamp - a.timestamp); // En yeni üstte
+                filteredMatches.sort((a, b) => b.timestamp - a.timestamp); 
             } else {
-                filteredMatches.sort((a, b) => a.timestamp - b.timestamp); // En yakın üstte
+                filteredMatches.sort((a, b) => a.timestamp - b.timestamp); 
             }
 
             if (filteredMatches.length === 0) {
@@ -523,26 +517,22 @@
             content.innerHTML = html;
         }
 
-        // Akıllı Logo Bulucu - A/B takımlarını anlar, ana logoyu atar
         function getTeamLogoHtml(teamName) {
             if (!teamName) return `<div class="w-full h-full flex items-center justify-center bg-slate-100 rounded-full"><span class="font-black text-slate-400">?</span></div>`;
             
             let foundUrl = null;
             let s1 = normalizeForMatch(teamName).replace(/\s+/g, ''); 
             
-            // 1. Önce tam eşleşme ara
             for (let key in logoData) {
                 let k1 = normalizeForMatch(key).replace(/\s+/g, '');
                 if (s1 === k1) { foundUrl = logoData[key]; break; }
             }
             
-            // 2. Bulamazsa A/B takımı varyantından ana takıma dön (Örn: fenerbahceb -> fenerbahce)
             if (!foundUrl) {
                 for (let key in logoData) {
                     let k1 = normalizeForMatch(key).replace(/\s+/g, '');
                     if (k1.length > 3 && s1.startsWith(k1)) { 
                         let leftover = s1.replace(k1, '');
-                        // Geriye sadece A, B gibi tek bir harf kaldıysa logoyu ana takımdan miras al
                         if(/^[a-z0-9]$/.test(leftover)) {
                             foundUrl = logoData[key]; break; 
                         }
@@ -581,7 +571,6 @@
             renderCards();
         }
 
-        // --- YENİ LİNK YÖNETİM SİSTEMİ EKLENDİ ---
         function generateLongLink(teamName) {
             const url = new URL(window.location.href);
             url.searchParams.set('team', teamName);
@@ -620,6 +609,19 @@
             document.body.removeChild(textArea);
         }
 
+        function openShortLink(teamName) {
+            const link = teamLinks[teamName];
+            if (link) {
+                let url = link;
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                }
+                window.open(url, '_blank');
+            } else {
+                alert('Lütfen önce bir kısa link kaydedin.');
+            }
+        }
+
         function renderTeamList() {
             const list = document.getElementById('team-list');
             list.innerHTML = '';
@@ -630,7 +632,6 @@
                 
                 let li = `<li class="${isActive ? 'mb-2' : 'mb-1'}">`;
                 
-                // Takım Butonu
                 li += `
                     <button onclick="selectTeam('${escapeHtml(team)}')" class="w-full text-left px-4 py-3 flex items-center justify-between transition-all ${isActive ? 'bg-slate-900 text-white font-semibold shadow-md rounded-t-xl' : 'text-slate-600 hover:bg-slate-100 font-medium text-sm rounded-xl'}">
                         <span class="truncate">${team}</span>
@@ -638,11 +639,9 @@
                     </button>
                 `;
 
-                // Aktif Takım İçin Açılır Menü (Uzun ve Kısa Linkler)
                 if (isActive) {
                     li += `
                     <div class="bg-white border border-slate-200 border-t-0 rounded-b-xl p-3 shadow-sm animate-[fadeIn_0.2s_ease-out]">
-                        <!-- Uzun Link -->
                         <div class="mb-3">
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Uzun Link (GitHub - Otomatik)</label>
                             <div class="flex gap-1.5">
@@ -650,9 +649,11 @@
                                 <button onclick="copyLinkText('${longLink}', this)" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center shrink-0" title="Kopyala">
                                     <i class="ph-bold ph-copy"></i>
                                 </button>
+                                <a href="${longLink}" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center shrink-0" title="Git / Aç">
+                                    <i class="ph-bold ph-arrow-square-out"></i>
+                                </a>
                             </div>
                         </div>
-                        <!-- Kısa Link Manuel -->
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Kısa Link (Manuel Ekle)</label>
                             <div class="flex gap-1.5">
@@ -662,6 +663,9 @@
                                 </button>
                                 <button onclick="copyLinkText(document.getElementById('short-link-input').value, this)" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center shrink-0" title="Kopyala">
                                     <i class="ph-bold ph-copy"></i>
+                                </button>
+                                <button onclick="openShortLink('${escapeHtml(team)}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center shrink-0" title="Git / Aç">
+                                    <i class="ph-bold ph-arrow-square-out"></i>
                                 </button>
                             </div>
                         </div>
@@ -705,26 +709,21 @@
             text.innerText = 'Yenile';
         }
 
-        // ESKİ "Taraftar için Özel Link Kopyalama" fonksiyonunu buradan tamamen sildik.
-
-        // Sayfa açıldığında Linki Kontrol Et (Yönetici mi Taraftar mı?)
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const teamParam = urlParams.get('team');
 
             if (teamParam) {
-                // TARAFTAR GÖRÜNÜMÜ AKTİF (Sadece telefon ekranı)
                 activeTeam = teamParam;
-                document.getElementById('admin-panel').style.display = 'none'; // Yönetim panelini gizle
+                document.getElementById('admin-panel').style.display = 'none'; 
                 document.getElementById('preview-panel').className = "w-full bg-slate-100 flex flex-col items-center justify-center relative h-screen overflow-hidden";
-                document.getElementById('mockup-container').classList.add('fan-mode'); // Telefondaysa tam ekran yap
-                document.getElementById('action-buttons').style.display = 'none'; // Butonları gizle
+                document.getElementById('mockup-container').classList.add('fan-mode'); 
+                document.getElementById('action-buttons').style.display = 'none'; 
                 document.getElementById('phone-title').innerText = activeTeam;
                 
                 await fetchLogos();
                 await fetchMatches();
             } else {
-                // YÖNETİCİ GÖRÜNÜMÜ AKTİF
                 renderTeamList();
                 await fetchLogos();
                 await fetchMatches();
